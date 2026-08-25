@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KBrat Family POS</title>
+<style>
+  :root{
+    --bg:#0f1720; --card:#1b2733; --card2:#22323f; --accent:#ff7a18;
+    --accent2:#ffb347; --text:#eef4f8; --muted:#93a4b3; --ok:#2ecc71; --danger:#e74c3c;
+  }
+  *{box-sizing:border-box;font-family:'Segoe UI',system-ui,Arial,sans-serif}
+  body{margin:0;background:var(--bg);color:var(--text)}
+  header{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    color:#1a1109;padding:14px 22px;display:flex;align-items:center;
+    justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.4);flex-wrap:wrap;gap:8px
+  }
+  header h1{margin:0;font-size:22px;display:flex;align-items:center;gap:10px}
+  header .btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  header .bonno{background:rgba(0,0,0,.18);padding:8px 12px;border-radius:10px;font-weight:700;font-size:14px}
+  button{cursor:pointer;border:none;border-radius:10px;font-size:15px;font-weight:600;padding:10px 14px;transition:.15s}
+  button:active{transform:scale(.97)}
+  .btn-ghost{background:rgba(0,0,0,.18);color:#1a1109}
+  .btn-ghost:hover{background:rgba(0,0,0,.28)}
+  #usbBtn.connected{background:#0c8a3e;color:#fff}
+  .layout{display:grid;grid-template-columns:1fr 400px;gap:18px;padding:18px;max-width:1220px;margin:0 auto}
+  @media(max-width:820px){.layout{grid-template-columns:1fr}}
+  h2{font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
+  .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  .product{
+    background:var(--card);border-radius:16px;padding:16px;text-align:center;
+    border:1px solid rgba(255,255,255,.05);cursor:pointer;transition:.15s;position:relative
+  }
+  .product:hover{background:var(--card2);transform:translateY(-3px);border-color:var(--accent)}
+  .product .emoji{font-size:42px}
+  .product .name{font-weight:700;margin:8px 0 4px;font-size:16px}
+  .product .price{color:var(--accent2);font-weight:700;font-size:15px}
+  .product .badge{
+    position:absolute;top:8px;right:8px;background:var(--accent);color:#1a1109;
+    min-width:24px;height:24px;border-radius:12px;font-size:13px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;padding:0 6px
+  }
+  .product.add{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:2px dashed var(--muted);color:var(--muted);background:transparent;min-height:130px}
+  .product.add:hover{border-color:var(--accent);color:var(--accent)}
+  .product.add .emoji{font-size:34px}
+  .panel{background:var(--card);border-radius:16px;padding:18px;height:fit-content;position:sticky;top:18px}
+  /* Selector tip comanda */
+  .otype{display:flex;gap:8px;margin-bottom:14px}
+  .otype button{flex:1;padding:12px;border-radius:12px;background:#0e1720;border:2px solid #33475a;
+    color:var(--muted);font-size:15px;display:flex;align-items:center;justify-content:center;gap:6px}
+  .otype button.sel{border-color:var(--accent);background:#2a1c0e;color:var(--text)}
+  .otype button .chk{opacity:0}
+  .otype button.sel .chk{opacity:1;color:var(--accent2)}
+  .order-list{max-height:46vh;overflow-y:auto;margin-bottom:14px}
+  .order-item{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .order-item .top{display:flex;align-items:center;gap:10px}
+  .order-item .oname{flex:1}
+  .order-item .oname small{display:block;color:var(--muted);font-size:12px}
+  .qty{display:flex;align-items:center;gap:6px}
+  .qty button{width:30px;height:30px;padding:0;border-radius:8px;background:var(--card2);color:var(--text);font-size:18px;line-height:1}
+  .qty span{min-width:22px;text-align:center;font-weight:700}
+  .line-total{min-width:66px;text-align:right;font-weight:700}
+  .note-in{width:100%;margin-top:8px;padding:8px 10px;border-radius:8px;border:1px solid #33475a;
+    background:#0e1720;color:var(--text);font-size:13px}
+  .note-in::placeholder{color:#5f7183}
+  .empty{color:var(--muted);text-align:center;padding:30px 0}
+  .totals{border-top:2px dashed rgba(255,255,255,.15);padding-top:12px}
+  .totals .row{display:flex;justify-content:space-between;margin:6px 0}
+  .totals .grand{font-size:26px;font-weight:800;color:var(--accent2)}
+  .actions{display:grid;gap:10px;margin-top:14px}
+  .btn-print{background:var(--ok);color:#062611;font-size:17px;padding:14px}
+  .btn-print:disabled{opacity:.4;cursor:not-allowed}
+  .btn-clear{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+  .bt-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .overlay.show{display:flex}
+  .modal{background:var(--card);border-radius:16px;padding:22px;max-width:480px;width:100%;max-height:90vh;overflow:auto}
+  .modal h3{margin:0 0 16px}
+  .price-row{display:flex;align-items:center;gap:10px;margin:10px 0}
+  .price-row .pe{font-size:24px;width:34px;text-align:center}
+  .price-row label{flex:1}
+  .price-row input[type=number]{width:100px;padding:9px;border-radius:8px;border:1px solid #33475a;background:#0e1720;color:var(--text);font-size:15px;text-align:right}
+  .price-row .del{width:34px;height:34px;padding:0;background:transparent;color:var(--danger);border:1px solid var(--danger);border-radius:8px;font-size:16px}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .modal-actions button{flex:1;min-width:120px}
+  .btn-save{background:var(--accent);color:#1a1109}
+  .cur{color:var(--muted);font-size:13px}
+  .field{margin:12px 0}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .field input{width:100%;padding:10px;border-radius:8px;border:1px solid #33475a;background:#0e1720;color:var(--text);font-size:15px}
+  .emoji-pick{display:flex;flex-wrap:wrap;gap:6px}
+  .emoji-pick button{background:#0e1720;border:1px solid #33475a;font-size:20px;padding:6px 8px;border-radius:8px}
+  .emoji-pick button.sel{border-color:var(--accent);background:#2a1c0e}
+  /* Report */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:560px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:#0e1720;border:1px solid #33475a;border-radius:12px;padding:12px;text-align:center}
+  .kpi-v{font-size:20px;font-weight:800;color:var(--accent2)}
+  .kpi-l{font-size:12px;color:var(--muted);margin-top:4px}
+  .rep-box{background:#0e1720;border:1px solid #33475a;border-radius:12px;padding:10px}
+  .rep-row{display:flex;justify-content:space-between;gap:8px;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px}
+  .rep-row:last-child{border-bottom:none}
+  .rep-row .muted{color:var(--muted);font-size:12px}
+  .bon-hd{cursor:pointer}
+  .bon-detail{padding:4px 4px 10px 16px;font-size:13px;color:var(--muted)}
+  .bon-detail .n{font-style:italic;color:#c9b18a}
+  .rep-empty{color:var(--muted);text-align:center;padding:16px}
+  /* ===== BONURI TERMICE (print fallback, 80mm) ===== */
+  #receipt{display:none}
+  @media print{
+    body *{visibility:hidden}
+    #receipt,#receipt *{visibility:visible}
+    #receipt{display:block;position:absolute;left:0;top:0;width:80mm;
+      color:#000;font-family:'Courier New',monospace;font-size:12px;padding:2mm}
+    @page{size:80mm auto;margin:0}
+    .bon{page-break-after:always}
+    .bon:last-child{page-break-after:auto}
+  }
+  #receipt .rc{text-align:center}
+  #receipt h4{margin:2px 0;font-size:15px}
+  #receipt table{width:100%;border-collapse:collapse;margin:4px 0}
+  #receipt td{padding:1px 0;vertical-align:top}
+  #receipt .r{text-align:right}
+  #receipt .dash{border-top:1px dashed #000;margin:4px 0}
+  #receipt .big{font-size:14px;font-weight:bold}
+  #receipt .sm{font-size:11px}
+  #receipt .note{font-style:italic;padding-left:6px}
+  #receipt .otype-r{text-align:center;font-size:16px;font-weight:bold;border:2px solid #000;padding:3px;margin:2px 0}
+  #receipt .ktitle{font-size:16px;font-weight:bold;text-align:center;letter-spacing:1px}
+  #receipt .kqty{font-weight:bold}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍔 KBrat Family POS</h1>
+  <div class="btns">
+    <span class="bonno">Următorul bon: <span id="nextBon">—</span></span>
+    <button class="btn-ghost" id="reprintBtn" onclick="reprintLast()" disabled>♻️ Retipărește ultimul bon</button>
+    <button class="btn-ghost" onclick="openReport()">📊 Istoric &amp; Raport</button>
+    <button class="btn-ghost" onclick="resetDay()">🌅 Reset zi</button>
+    <button class="btn-ghost" onclick="openPrices()">⚙️ Produse &amp; Prețuri</button>
+    <button class="btn-ghost" id="usbBtn" onclick="toggleUsb()">🔌 Conectează imprimanta</button>
+  </div>
+</header>
+<div class="layout">
+  <!-- PRODUSE -->
+  <section>
+    <h2>Produse</h2>
+    <div class="products" id="products"></div>
+  </section>
+  <!-- COMANDA -->
+  <aside class="panel">
+    <h2>Comandă curentă</h2>
+    <!-- Tip comanda -->
+    <div class="otype">
+      <button id="ot_aici"    class="sel" onclick="setOrderType('aici')"><span class="chk">✓</span> 🍽️ AICI</button>
+      <button id="ot_pachet"  onclick="setOrderType('pachet')"><span class="chk">✓</span> 🥡 PACHET</button>
+    </div>
+    <div class="order-list" id="orderList">
+      <div class="empty">Niciun produs selectat.<br>Apasă pe un produs.</div>
+    </div>
+    <div class="totals">
+      <div class="row"><span>Produse</span><span id="itemCount">0</span></div>
+      <div class="row grand"><span>TOTAL</span><span id="grandTotal">0.00 lei</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn-print" id="printBtn" disabled onclick="printReceipt()">🧾 Print (client + bucătărie)</button>
+      <button class="btn-clear" onclick="clearOrder()">Golește comanda</button>
+    </div>
+    <div class="bt-hint" id="btHint">Imprimantă USB: neconectată — printul se face prin fereastra browserului.</div>
+  </aside>
+</div>
+<!-- MODAL PRODUSE & PRETURI -->
+<div class="overlay" id="priceOverlay">
+  <div class="modal">
+    <h3>⚙️ Produse &amp; prețuri <span class="cur">(lei)</span></h3>
+    <div id="priceForm"></div>
+    <button class="btn-ghost" style="background:#2a3a49;color:#fff;width:100%;margin-top:8px" onclick="openAddForm()">➕ Adaugă produs nou</button>
+    <div class="modal-actions">
+      <button class="btn-ghost" style="background:#33475a;color:#fff" onclick="closePrices()">Închide</button>
+      <button class="btn-save" onclick="savePrices()">💾 Salvează prețurile</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL ADAUGA PRODUS -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <h3>➕ Adaugă produs nou</h3>
+    <div class="field">
+      <label>Nume produs</label>
+      <input type="text" id="newName" placeholder="ex: Hot Dog">
+    </div>
+    <div class="field">
+      <label>Preț (lei)</label>
+      <input type="number" id="newPrice" step="0.5" min="0" placeholder="ex: 15">
+    </div>
+    <div class="field">
+      <label>Alege un simbol (emoji)</label>
+      <div class="emoji-pick" id="emojiPick"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" style="background:#33475a;color:#fff" onclick="closeAddForm()">Anulează</button>
+      <button class="btn-save" onclick="addNewProduct()">Adaugă</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL ISTORIC & RAPORT -->
+<div class="overlay" id="reportOverlay">
+  <div class="modal" style="max-width:640px">
+    <h3>📊 Istoric bonuri &amp; raport</h3>
+    <div class="field" style="display:flex;align-items:center;gap:10px;margin:0 0 14px">
+      <label style="margin:0">Ziua:</label>
+      <input type="date" id="reportDate" onchange="renderReport()"
+             style="width:auto;flex:0;padding:8px;border-radius:8px;border:1px solid #33475a;background:#0e1720;color:var(--text)">
+      <button class="btn-ghost" style="background:#2a3a49;color:#fff;padding:8px 12px" onclick="setToday()">Azi</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-v" id="kpiRevenue">0.00 lei</div><div class="kpi-l">Total încasat</div></div>
+      <div class="kpi"><div class="kpi-v" id="kpiCount">0</div><div class="kpi-l">Bonuri</div></div>
+      <div class="kpi"><div class="kpi-v" id="kpiItems">0</div><div class="kpi-l">Produse vândute</div></div>
+      <div class="kpi"><div class="kpi-v" id="kpiAvg">0.00 lei</div><div class="kpi-l">Bon mediu</div></div>
+    </div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-top:10px">
+      <div class="kpi"><div class="kpi-v" id="kpiAici">0</div><div class="kpi-l">🍽️ AICI</div></div>
+      <div class="kpi"><div class="kpi-v" id="kpiPachet">0</div><div class="kpi-l">🥡 PACHET</div></div>
+    </div>
+    <h4 style="color:var(--muted);font-size:13px;text-transform:uppercase;margin:18px 0 8px">Top produse</h4>
+    <div id="topProducts" class="rep-box"></div>
+    <h4 style="color:var(--muted);font-size:13px;text-transform:uppercase;margin:18px 0 8px">Bonuri</h4>
+    <div id="bonList" class="rep-box" style="max-height:34vh;overflow:auto"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" style="background:#33475a;color:#fff" onclick="closeReport()">Închide</button>
+      <button class="btn-ghost" style="background:#2a3a49;color:#fff" onclick="exportCsv()">⬇️ Export CSV</button>
+      <button class="btn-clear" onclick="clearHistory()">🗑 Șterge istoric</button>
+    </div>
+  </div>
+</div>
+<!-- BONURI TERMICE (fallback browser) -->
+<div id="receipt"></div>
+<script>
+/* ---------- Datele firmei ---------- */
+const SHOP = {
+  name:  "KBRAT FAMILY TIME S.R.L.",
+  brand: "KBrat Family",
+  line1: "Str. Libertatii 14-16, Bl.1, Et.1, Ap.106",
+  line2: "Otopeni, Jud. Ilfov, 075100",
+  cui:   "CUI: 43765309",
+  reg:   "Reg. Com.: J23/1075/2021"
+};
+/* ---------- Etichete tip comanda ---------- */
+const OTYPE = {
+  aici:   { label:"AICI",   emoji:"🍽️" },
+  pachet: { label:"PACHET", emoji:"🥡" }
+};
+/* ---------- Produse default ---------- */
+const DEFAULTS = [
+  { id:"cheeseburger", name:"Cheeseburger",    emoji:"🍔", price:25 },
+  { id:"halloumi",     name:"Halloumi Burger", emoji:"🧀", price:28 },
+  { id:"fries",        name:"Cartofi prăjiți", emoji:"🍟", price:12 },
+  { id:"coffee",       name:"Cafea",           emoji:"☕", price:8  },
+  { id:"juice",        name:"Suc",             emoji:"🥤", price:7  },
+];
+/* ---------- State ---------- */
+let products = loadProducts();
+let order = [];            // [{lineId, id, qty, note}]
+let orderType = "aici";    // "aici" | "pachet"
+let pickedEmoji = "🍽️";
+function loadProducts(){
+  try{
+    const saved = JSON.parse(localStorage.getItem("kbrat_products")||"null");
+    if(saved && Array.isArray(saved) && saved.length) return saved;
+  }catch(e){}
+  return DEFAULTS.map(p=>({...p}));
+}
+function persistProducts(){ localStorage.setItem("kbrat_products", JSON.stringify(products)); }
+/* ---------- Tip comanda ---------- */
+function setOrderType(t){
+  orderType = t;
+  document.getElementById("ot_aici").classList.toggle("sel", t==="aici");
+  document.getElementById("ot_pachet").classList.toggle("sel", t==="pachet");
+}
+/* ---------- Numar bon ---------- */
+function getNextBonNo(){ return parseInt(localStorage.getItem("kbrat_bon_no")||"1",10); }
+function bumpBonNo(){ localStorage.setItem("kbrat_bon_no", String(getNextBonNo()+1)); }
+function fmtBon(n){ return "#" + String(n).padStart(5,"0"); }
+function refreshNextBon(){ document.getElementById("nextBon").textContent = fmtBon(getNextBonNo()); }
+function resetDay(){
+  const cur = getNextBonNo();
+  if(!confirm("Reset la început de zi?\n\nContorul de bonuri va reveni la "+fmtBon(1)+".\n(Următorul bon urma să fie "+fmtBon(cur)+".)")) return;
+  localStorage.setItem("kbrat_bon_no","1");
+  refreshNextBon();
+  alert("Gata! Numerotarea repornește de la "+fmtBon(1)+".");
+}
+/* ---------- Render produse ---------- */
+function totalQtyFor(id){ return order.filter(l=>l.id===id).reduce((s,l)=>s+l.qty,0); }
+function renderProducts(){
+  const el = document.getElementById("products");
+  el.innerHTML = products.map(p=>{
+    const q = totalQtyFor(p.id);
+    return `<div class="product" onclick="addItem('${p.id}')">
+      ${q?`<div class="badge">${q}</div>`:""}
+      <div class="emoji">${p.emoji}</div>
+      <div class="name">${p.name}</div>
+      <div class="price">${Number(p.price).toFixed(2)} lei</div>
+    </div>`;
+  }).join("")
+  + `<div class="product add" onclick="openAddForm()">
+       <div class="emoji">➕</div><div class="name">Adaugă produs</div>
+     </div>`;
+}
+/* ---------- Comanda ---------- */
+function addItem(id){
+  const existing = order.find(l=>l.id===id && !l.note);
+  if(existing){ existing.qty++; }
+  else order.push({ lineId:"L"+Date.now()+Math.random().toString(16).slice(2,6), id, qty:1, note:"" });
+  renderAll();
+}
+function changeQty(lineId,d){
+  const l = order.find(x=>x.lineId===lineId); if(!l) return;
+  l.qty+=d;
+  if(l.qty<=0) order = order.filter(x=>x.lineId!==lineId);
+  renderAll();
+}
+function setNote(lineId,val){ const l=order.find(x=>x.lineId===lineId); if(l) l.note=val; updateTotals(); }
+function clearOrder(){ order=[]; setOrderType("aici"); renderAll(); }
+function updateTotals(){
+  const count = order.reduce((s,l)=>s+l.qty,0);
+  const total = order.reduce((s,l)=>{ const p=products.find(x=>x.id===l.id); return s+(p?p.price*l.qty:0); },0);
+  document.getElementById("itemCount").textContent = count;
+  document.getElementById("grandTotal").textContent = total.toFixed(2)+" lei";
+  document.getElementById("printBtn").disabled = order.length===0;
+}
+function renderOrder(){
+  const list = document.getElementById("orderList");
+  order = order.filter(l=>products.find(p=>p.id===l.id));
+  if(order.length===0){
+    list.innerHTML=`<div class="empty">Niciun produs selectat.<br>Apasă pe un produs.</div>`;
+  } else {
+    list.innerHTML = order.map(l=>{
+      const p = products.find(x=>x.id===l.id);
+      const lt = (p.price*l.qty).toFixed(2);
+      return `<div class="order-item">
+        <div class="top">
+          <div class="oname">${p.emoji} ${p.name}<small>${Number(p.price).toFixed(2)} lei / buc</small></div>
+          <div class="qty">
+            <button onclick="changeQty('${l.lineId}',-1)">−</button>
+            <span>${l.qty}</span>
+            <button onclick="changeQty('${l.lineId}',1)">+</button>
+          </div>
+          <div class="line-total">${lt} lei</div>
+        </div>
+        <input class="note-in" type="text" placeholder="💬 Comentariu (ex: fara ceapa)"
+               value="${(l.note||'').replace(/"/g,'&quot;')}"
+               oninput="setNote('${l.lineId}', this.value)">
+      </div>`;
+    }).join("");
+  }
+  updateTotals();
+}
+function renderAll(){ renderProducts(); renderOrder(); }
+/* ---------- Modal produse & preturi ---------- */
+function openPrices(){ renderPriceForm(); document.getElementById("priceOverlay").classList.add("show"); }
+function renderPriceForm(){
+  document.getElementById("priceForm").innerHTML = products.map(p=>`
+    <div class="price-row">
+      <span class="pe">${p.emoji}</span>
+      <label>${p.name}</label>
+      <input type="number" step="0.5" min="0" id="price_${p.id}" value="${p.price}">
+      <button class="del" title="Șterge produsul" onclick="deleteProduct('${p.id}')">🗑</button>
+    </div>`).join("");
+}
+function closePrices(){ document.getElementById("priceOverlay").classList.remove("show"); }
+function savePrices(){
+  products.forEach(p=>{
+    const inp=document.getElementById("price_"+p.id);
+    if(inp){ const v=parseFloat(inp.value); if(!isNaN(v)&&v>=0) p.price=v; }
+  });
+  persistProducts(); closePrices(); renderAll();
+}
+function deleteProduct(id){
+  if(!confirm("Ștergi acest produs?")) return;
+  products = products.filter(p=>p.id!==id);
+  order = order.filter(l=>l.id!==id);
+  persistProducts(); renderPriceForm(); renderAll();
+}
+/* ---------- Adauga produs nou ---------- */
+const EMOJIS = ["🍔","🧀","🍟","☕","🥤","🌭","🌮","🥙","🍕","🥗","🍗","🍩","🍦","🧃","🍺","🥪","🫓","🍖","🥓","🧇","🥐","🍫","🍪","🍽️"];
+function openAddForm(){
+  document.getElementById("newName").value="";
+  document.getElementById("newPrice").value="";
+  pickedEmoji="🍽️";
+  document.getElementById("emojiPick").innerHTML = EMOJIS.map(e=>
+    `<button class="${e===pickedEmoji?'sel':''}" onclick="pickEmoji('${e}',this)">${e}</button>`).join("");
+  document.getElementById("addOverlay").classList.add("show");
+}
+function pickEmoji(e,btn){
+  pickedEmoji=e;
+  document.querySelectorAll("#emojiPick button").forEach(b=>b.classList.remove("sel"));
+  btn.classList.add("sel");
+}
+function closeAddForm(){ document.getElementById("addOverlay").classList.remove("show"); }
+function addNewProduct(){
+  const name=document.getElementById("newName").value.trim();
+  const price=parseFloat(document.getElementById("newPrice").value);
+  if(!name){ alert("Introdu numele produsului."); return; }
+  if(isNaN(price)||price<0){ alert("Introdu un preț valid."); return; }
+  products.push({id:"p_"+Date.now(),name,emoji:pickedEmoji,price});
+  persistProducts(); closeAddForm(); renderAll();
+  if(document.getElementById("priceOverlay").classList.contains("show")) renderPriceForm();
+}
+/* =========================================================
+   IMPRIMANTA USB (ESC/POS) - WebUSB
+   ========================================================= */
+let usbDevice=null, usbEpOut=null, usbIface=null;
+function usbConnected(){ return usbDevice && usbDevice.opened && usbEpOut!==null; }
+function refreshUsbUI(){
+  const btn=document.getElementById("usbBtn");
+  const hint=document.getElementById("btHint");
+  const pbtn=document.getElementById("printBtn");
+  if(usbConnected()){
+    btn.textContent="🟢 Imprimantă conectată";
+    btn.classList.add("connected");
+    hint.textContent="Imprimantă USB conectată — printul se trimite DIRECT, fără dialog.";
+    pbtn.textContent="🖨️ Printează direct (client + bucătărie)";
+  }else{
+    btn.textContent="🔌 Conectează imprimanta";
+    btn.classList.remove("connected");
+    hint.textContent="Imprimantă USB: neconectată — printul se face prin fereastra browserului.";
+    pbtn.textContent="🧾 Print (client + bucătărie)";
+  }
+}
+async function toggleUsb(){
+  if(usbConnected()){
+    try{ await usbDevice.close(); }catch(e){}
+    usbDevice=null; usbEpOut=null; usbIface=null; refreshUsbUI();
+    return;
+  }
+  if(!navigator.usb){
+    alert("Acest browser nu suportă WebUSB.\nFolosește Chrome pe Android/desktop, iar pagina trebuie să fie pe HTTPS.");
+    return;
+  }
+  try{
+    usbDevice = await navigator.usb.requestDevice({ filters:[{classCode:7}] }); // 7 = USB printer class
+    await usbDevice.open();
+    if(usbDevice.configuration===null) await usbDevice.selectConfiguration(1);
+    let chosen=null, epOut=null;
+    for(const iface of usbDevice.configuration.interfaces){
+      const alt=iface.alternate;
+      const out=alt.endpoints.find(e=>e.direction==="out" && e.type==="bulk");
+      if(out){ chosen=iface; epOut=out; if(alt.interfaceClass===7) break; }
+    }
+    if(!chosen || !epOut){ alert("Nu am găsit un endpoint de scriere pe imprimantă."); await usbDevice.close(); usbDevice=null; return; }
+    await usbDevice.claimInterface(chosen.interfaceNumber);
+    usbIface=chosen; usbEpOut=epOut.endpointNumber;
+    refreshUsbUI();
+    alert("Imprimantă USB conectată! ✅\nDe acum, butonul de print trimite bonurile direct.");
+  }catch(e){
+    if(e && e.name==="NotFoundError") return;
+    alert("Conectare USB eșuată: "+(e.message||e));
+    usbDevice=null; usbEpOut=null;
+  }
+}
+async function usbWrite(bytes){
+  const CH=8192;
+  for(let i=0;i<bytes.length;i+=CH){
+    await usbDevice.transferOut(usbEpOut, bytes.slice(i,i+CH));
+  }
+}
+/* ---- ESC/POS ---- */
+function stripDiacritics(s){
+  return String(s)
+    .replace(/[ăâ]/g,"a").replace(/[ĂÂ]/g,"A")
+    .replace(/[îí]/g,"i").replace(/[ÎÍ]/g,"I")
+    .replace(/[șş]/g,"s").replace(/[ȘŞ]/g,"S")
+    .replace(/[țţ]/g,"t").replace(/[ȚŢ]/g,"T")
+    .replace(/[^\x00-\x7F]/g,"");
+}
+const LINE = 42; // 80mm ~ 48 col; folosim 42 pt marja de siguranta
+function padLR(left,right){
+  left=stripDiacritics(left); right=stripDiacritics(right);
+  if(left.length+right.length>=LINE){ left=left.slice(0,LINE-right.length-1); }
+  return left+" ".repeat(Math.max(1,LINE-left.length-right.length))+right;
+}
+function padLR16(left,right){
+  left=stripDiacritics(left); right=stripDiacritics(right); const W=21;
+  const sp=Math.max(1,W-left.length-right.length);
+  return left+" ".repeat(sp)+right;
+}
+class Esc{
+  constructor(){ this.bytes=[]; }
+  raw(...a){ a.forEach(b=>this.bytes.push(b)); return this; }
+  text(s){ const t=stripDiacritics(s); for(let i=0;i<t.length;i++) this.bytes.push(t.charCodeAt(i)&0xFF); return this; }
+  nl(n=1){ for(let i=0;i<n;i++) this.bytes.push(0x0A); return this; }
+  init(){ return this.raw(0x1B,0x40); }
+  align(a){ return this.raw(0x1B,0x61, a==="c"?1:a==="r"?2:0); }
+  bold(on){ return this.raw(0x1B,0x45,on?1:0); }
+  size(dbl){ return this.raw(0x1D,0x21, dbl?0x11:0x00); }
+  invert(on){ return this.raw(0x1D,0x42,on?1:0); }
+  line(){ return this.text("-".repeat(LINE)).nl(); }
+  cut(){ return this.raw(0x0A,0x0A,0x0A,0x1D,0x56,0x00); } // feed + auto-cut
+  out(){ return new Uint8Array(this.bytes); }
+}
+function otLabel(t){ return (OTYPE[t]||OTYPE.aici).label; }
+function buildClientEsc(data){
+  const e=new Esc().init();
+  e.align("c").bold(true).size(true).text(SHOP.brand).nl().size(false);
+  e.text(SHOP.name).nl();
+  e.bold(false);
+  e.text(SHOP.line1).nl().text(SHOP.line2).nl();
+  e.text(SHOP.cui).nl().text(SHOP.reg).nl();
+  e.align("l").line();
+  e.bold(true).text("BON CONSUM "+data.bonTxt).nl().bold(false);
+  e.text("Data: "+data.dt).nl();
+  e.align("c").invert(true).bold(true).text(" "+otLabel(data.orderType)+" ").nl().bold(false).invert(false).align("l");
+  e.line();
+  data.items.forEach(i=>{
+    e.text(padLR(i.name, (i.qty*i.price).toFixed(2))).nl();
+    e.text("  "+i.qty+" x "+i.price.toFixed(2)).nl();
+    if(i.note) e.text("  > "+i.note).nl();
+  });
+  e.line();
+  e.bold(true).size(true).text(padLR16("TOTAL", data.total.toFixed(2)+" lei")).nl().size(false).bold(false);
+  e.line();
+  e.align("c").text("Va multumim!").nl();
+  e.cut();
+  return e.out();
+}
+function buildKitchenEsc(data){
+  const e=new Esc().init();
+  e.align("c").bold(true).size(true).text("** BUCATARIE **").nl().size(false);
+  e.text(data.bonTxt).nl().bold(false);
+  e.invert(true).bold(true).size(true).text(" "+otLabel(data.orderType)+" ").nl().size(false).bold(false).invert(false);
+  e.align("c").text(data.dt).nl();
+  e.align("l").line();
+  data.items.forEach(i=>{
+    e.bold(true).size(true).text(i.qty+" x "+i.name).nl().size(false).bold(false);
+    if(i.note) e.text("   > "+i.note).nl();
+  });
+  e.line();
+  e.align("c").text("Total produse: "+data.items.reduce((s,i)=>s+i.qty,0)).nl();
+  e.cut();
+  return e.out();
+}
+/* =========================================================
+   PRINT
+   ========================================================= */
+async function printReceipt(){
+  if(order.length===0) return;
+  const bonNo = getNextBonNo();
+  const bonTxt = fmtBon(bonNo);
+  const now = new Date();
+  const dt = now.toLocaleString("ro-RO");
+  let total=0;
+  const items = order.map(l=>{
+    const p=products.find(x=>x.id===l.id);
+    total+=p.price*l.qty;
+    return { name:p.name, emoji:p.emoji, qty:l.qty, price:p.price, note:l.note||"" };
+  });
+  const data={ bonNo, bonTxt, dt, total, items, orderType };
+  if(usbConnected()){
+    try{
+      document.getElementById("printBtn").disabled=true;
+      await usbWrite(buildClientEsc(data));
+      await new Promise(r=>setTimeout(r,200));
+      await usbWrite(buildKitchenEsc(data));
+    }catch(e){
+      alert("Eroare la printare USB: "+(e.message||e)+"\nÎncearcă reconectarea imprimantei.");
+      document.getElementById("printBtn").disabled=false;
+      return;
+    }
+    document.getElementById("printBtn").disabled=false;
+  }else{
+    renderBrowserReceipt(data);
+    window.print();
+  }
+  localStorage.setItem("kbrat_last_receipt", JSON.stringify({ data }));
+  refreshReprintBtn();
+  saveToHistory({ no:bonNo, bonTxt, iso:now.toISOString(), dt, day:toDayKey(now), total, items, orderType });
+  bumpBonNo();
+  refreshNextBon();
+  clearOrder();
+}
+function otLabelHtml(t){ const o=OTYPE[t]||OTYPE.aici; return `${o.emoji} ${o.label}`; }
+function renderBrowserReceipt(data){
+  const clientRows = data.items.map(i=>{
+    const lt=i.qty*i.price;
+    const noteRow = i.note ? `<tr><td colspan="3" class="note sm">↳ ${i.note}</td></tr>` : "";
+    return `<tr><td>${i.name}</td><td class="r">${i.qty} x ${i.price.toFixed(2)}</td><td class="r">${lt.toFixed(2)}</td></tr>${noteRow}`;
+  }).join("");
+  const kitchenRows = data.items.map(i=>{
+    const noteRow = i.note ? `<tr><td colspan="2" class="note">↳ ${i.note}</td></tr>` : "";
+    return `<tr><td class="kqty">${i.qty} x</td><td>${i.emoji} ${i.name}</td></tr>${noteRow}`;
+  }).join("");
+  const otHtml = otLabelHtml(data.orderType);
+  const clientBon=`<div class="bon">
+      <div class="rc"><h4>${SHOP.brand}</h4>
+        <div class="sm">${SHOP.name}</div><div class="sm">${SHOP.line1}</div>
+        <div class="sm">${SHOP.line2}</div><div class="sm">${SHOP.cui}</div><div class="sm">${SHOP.reg}</div></div>
+      <div class="dash"></div>
+      <div class="big">BON CONSUM ${data.bonTxt}</div><div>Data: ${data.dt}</div>
+      <div class="otype-r">${otHtml}</div>
+      <table><tr><td><b>Produs</b></td><td class="r"><b>Cant.</b></td><td class="r"><b>Val.</b></td></tr>${clientRows}</table>
+      <div class="dash"></div>
+      <table><tr class="big"><td>TOTAL</td><td class="r">${data.total.toFixed(2)} lei</td></tr></table>
+      <div class="dash"></div><div class="rc">Va multumim! 🍔<br>&nbsp;</div></div>`;
+  const kitchenBon=`<div class="bon">
+      <div class="ktitle">** BUCATARIE **</div>
+      <div class="rc big">${data.bonTxt}</div>
+      <div class="otype-r">${otHtml}</div>
+      <div class="rc sm">${data.dt}</div>
+      <div class="dash"></div><table>${kitchenRows}</table><div class="dash"></div>
+      <div class="rc sm">Total produse: ${data.items.reduce((s,i)=>s+i.qty,0)}<br>&nbsp;</div></div>`;
+  document.getElementById("receipt").innerHTML = clientBon + kitchenBon;
+}
+/* ---------- Retipareste ultimul bon ---------- */
+function getLastReceipt(){
+  try{ return JSON.parse(localStorage.getItem("kbrat_last_receipt")||"null"); }catch(e){ return null; }
+}
+function refreshReprintBtn(){
+  const last=getLastReceipt();
+  const btn=document.getElementById("reprintBtn");
+  btn.disabled=!last;
+  btn.textContent = last ? ("♻️ Retipărește "+last.data.bonTxt) : "♻️ Retipărește ultimul bon";
+}
+async function reprintLast(){
+  const last=getLastReceipt();
+  if(!last){ alert("Nu există niciun bon tipărit încă."); return; }
+  const data=last.data;
+  if(usbConnected()){
+    try{
+      const e=new Esc().init().align("c").bold(true).text("*** COPIE / REPRINT ***").nl().bold(false);
+      await usbWrite(e.out());
+      await usbWrite(buildClientEsc(data));
+      await new Promise(r=>setTimeout(r,200));
+      await usbWrite(buildKitchenEsc(data));
+    }catch(err){ alert("Eroare reprint USB: "+(err.message||err)); }
+  }else{
+    renderBrowserReceipt(data);
+    const copyMark=`<div class="bon"><div class="rc big">*** COPIE / REPRINT ***</div><div class="rc sm">${data.bonTxt} · ${data.dt}</div><div class="dash"></div></div>`;
+    document.getElementById("receipt").innerHTML = copyMark + document.getElementById("receipt").innerHTML;
+    window.print();
+  }
+}
+/* ---------- Istoric bonuri ---------- */
+function toDayKey(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function getHistory(){ try{ return JSON.parse(localStorage.getItem("kbrat_history")||"[]"); }catch(e){ return []; } }
+function saveToHistory(rec){ const h=getHistory(); h.push(rec); localStorage.setItem("kbrat_history", JSON.stringify(h)); }
+/* ---------- Modal raport ---------- */
+function openReport(){ setToday(); document.getElementById("reportOverlay").classList.add("show"); }
+function closeReport(){ document.getElementById("reportOverlay").classList.remove("show"); }
+function setToday(){ document.getElementById("reportDate").value = toDayKey(new Date()); renderReport(); }
+function renderReport(){
+  const day = document.getElementById("reportDate").value;
+  const bons = getHistory().filter(b=>b.day===day).sort((a,b)=>a.no-b.no);
+  const revenue = bons.reduce((s,b)=>s+b.total,0);
+  const itemsSold = bons.reduce((s,b)=>s+b.items.reduce((t,i)=>t+i.qty,0),0);
+  const avg = bons.length ? revenue/bons.length : 0;
+  document.getElementById("kpiRevenue").textContent = revenue.toFixed(2)+" lei";
+  document.getElementById("kpiCount").textContent   = bons.length;
+  document.getElementById("kpiItems").textContent   = itemsSold;
+  document.getElementById("kpiAvg").textContent     = avg.toFixed(2)+" lei";
+  document.getElementById("kpiAici").textContent   = bons.filter(b=>(b.orderType||"aici")==="aici").length;
+  document.getElementById("kpiPachet").textContent = bons.filter(b=>b.orderType==="pachet").length;
+  const agg={};
+  bons.forEach(b=>b.items.forEach(i=>{
+    if(!agg[i.name]) agg[i.name]={emoji:i.emoji,qty:0,val:0};
+    agg[i.name].qty+=i.qty; agg[i.name].val+=i.qty*i.price;
+  }));
+  const top=Object.entries(agg).sort((a,b)=>b[1].qty-a[1].qty);
+  document.getElementById("topProducts").innerHTML = top.length ? top.map(([name,d])=>`
+    <div class="rep-row"><span>${d.emoji} ${name} <span class="muted">× ${d.qty}</span></span><span>${d.val.toFixed(2)} lei</span></div>`).join("")
+    : `<div class="rep-empty">Niciun produs vândut în această zi.</div>`;
+  document.getElementById("bonList").innerHTML = bons.length ? bons.map(b=>{
+    const time = new Date(b.iso).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
+    const ot = OTYPE[b.orderType||"aici"];
+    const det = b.items.map(i=>`&nbsp;&nbsp;${i.qty} × ${i.emoji} ${i.name}${i.note?` <span class="n">(${i.note})</span>`:""}`).join("<br>");
+    return `<div>
+      <div class="rep-row bon-hd" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+        <span><b>${b.bonTxt}</b> <span class="muted">${time} · ${ot.emoji} ${ot.label}</span></span><span>${b.total.toFixed(2)} lei</span></div>
+      <div class="bon-detail" style="display:none">${det}</div></div>`;
+  }).join("") : `<div class="rep-empty">Niciun bon în această zi.</div>`;
+}
+function exportCsv(){
+  const day = document.getElementById("reportDate").value;
+  const bons = getHistory().filter(b=>b.day===day).sort((a,b)=>a.no-b.no);
+  if(!bons.length){ alert("Niciun bon de exportat pentru "+day+"."); return; }
+  let csv="Bon,Tip,Data ora,Produs,Cantitate,Pret unitar,Valoare,Comentariu\n";
+  bons.forEach(b=>b.items.forEach(i=>{
+    const val=(i.qty*i.price).toFixed(2);
+    const esc=s=>`"${String(s).replace(/"/g,'""')}"`;
+    const ot=(OTYPE[b.orderType||"aici"]).label;
+    csv+=[esc(b.bonTxt),esc(ot),esc(b.dt),esc(i.name),i.qty,i.price.toFixed(2),val,esc(i.note)].join(",")+"\n";
+  }));
+  const total=bons.reduce((s,b)=>s+b.total,0).toFixed(2);
+  csv+=`,,,,,,${total},"TOTAL ZI"\n`;
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="raport_KBrat_"+day+".csv"; a.click();
+}
+function clearHistory(){
+  if(!confirm("Ștergi TOT istoricul de bonuri?\nAceastă acțiune nu poate fi anulată.")) return;
+  localStorage.removeItem("kbrat_history"); renderReport();
+}
+/* ---------- Init ---------- */
+refreshNextBon();
+refreshReprintBtn();
+refreshUsbUI();
+setOrderType("aici");
+renderAll();
+</script>
+</body>
+</html>
